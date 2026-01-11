@@ -5,8 +5,8 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "ocl": "./dist/index.js",
-    "opencode-launcher": "./dist/index.js"
+    "ocl": "dist/index.js",
+    "opencode-launcher": "dist/index.js"
   },
   "files": [
     "dist"
