@@ -1,0 +1,51 @@
+{
+  "name": "opencode-launcher",
+  "version": "1.0.0",
+  "description": "Elegant profile manager for OpenCode - switch between work, personal, and project configurations effortlessly",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "ocl": "./dist/index.js",
+    "opencode-launcher": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "dev": "tsup src/index.ts --format esm --watch",
+    "prepublishOnly": "npm run build",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "opencode",
+    "cli",
+    "profile",
+    "launcher",
+    "configuration",
+    "manager",
+    "terminal"
+  ],
+  "author": "quino0627",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/quino0627/opencode-launcher.git"
+  },
+  "bugs": {
+    "url": "https://github.com/quino0627/opencode-launcher/issues"
+  },
+  "homepage": "https://github.com/quino0627/opencode-launcher#readme",
+  "dependencies": {
+    "commander": "^13.0.0",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
