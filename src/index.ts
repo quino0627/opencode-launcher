@@ -4,8 +4,10 @@ import { Command } from "commander";
 import pc from "picocolors";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, unlinkSync, copyFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, basename } from "node:path";
+import { join, basename, dirname } from "node:path";
 import { spawn, execSync } from "node:child_process";
+
+const OCLRC_FILE = ".oclrc";
 
 const OPENCODE_CONFIG_DIR = join(homedir(), ".config", "opencode");
 const OPENCODE_CONFIG_FILE = join(OPENCODE_CONFIG_DIR, "opencode.json");
@@ -149,6 +151,34 @@ function getEmptyConfig(): object {
     provider: {},
     agent: {}
   };
+}
+
+function findLocalProfile(startDir: string = process.cwd()): { profile: string; path: string } | null {
+  let currentDir = startDir;
+  const root = dirname(currentDir) === currentDir ? currentDir : "/";
+  
+  while (currentDir !== root) {
+    const oclrcPath = join(currentDir, OCLRC_FILE);
+    if (existsSync(oclrcPath)) {
+      const content = readFileSync(oclrcPath, "utf-8").trim();
+      if (content && validateProfileName(content)) {
+        return { profile: content, path: oclrcPath };
+      }
+    }
+    const parent = dirname(currentDir);
+    if (parent === currentDir) break;
+    currentDir = parent;
+  }
+  
+  const oclrcPath = join(root, OCLRC_FILE);
+  if (existsSync(oclrcPath)) {
+    const content = readFileSync(oclrcPath, "utf-8").trim();
+    if (content && validateProfileName(content)) {
+      return { profile: content, path: oclrcPath };
+    }
+  }
+  
+  return null;
 }
 
 function cmdList(): void {
@@ -381,6 +411,56 @@ function cmdCopy(source: string, dest: string): void {
   ui.success(`Profile "${pc.bold(source)}" copied to "${pc.bold(dest)}"`);
 }
 
+function cmdInit(name: string): void {
+  if (!validateProfileName(name)) {
+    ui.error("Invalid profile name. Use only letters, numbers, hyphens, and underscores.");
+    process.exit(1);
+  }
+
+  if (!profileExists(name)) {
+    ui.error(`Profile "${name}" does not exist.`);
+    console.log(pc.dim(`  ${SYMBOLS.arrow} Create it first with: ${pc.cyan(`ocl create ${name}`)}`));
+    console.log();
+    process.exit(1);
+  }
+
+  const oclrcPath = join(process.cwd(), OCLRC_FILE);
+  writeFileSync(oclrcPath, name + "\n");
+
+  ui.success(`Created ${pc.bold(OCLRC_FILE)} with profile "${pc.bold(name)}"`);
+  console.log(pc.dim(`  ${SYMBOLS.arrow} Run ${pc.cyan("ocl apply")} to switch to this profile`));
+  console.log(pc.dim(`  ${SYMBOLS.arrow} Or it will auto-detect when you run ${pc.cyan("opencode")} here`));
+  console.log();
+}
+
+function cmdApply(): void {
+  const local = findLocalProfile();
+  
+  if (!local) {
+    ui.info(`No ${OCLRC_FILE} found in current directory or parents.`);
+    console.log(pc.dim(`  ${SYMBOLS.arrow} Create one with: ${pc.cyan("ocl init <profile>")}`));
+    console.log();
+    return;
+  }
+
+  if (!profileExists(local.profile)) {
+    ui.error(`Profile "${local.profile}" from ${local.path} does not exist.`);
+    console.log(pc.dim(`  ${SYMBOLS.arrow} Create it with: ${pc.cyan(`ocl create ${local.profile}`)}`));
+    console.log();
+    process.exit(1);
+  }
+
+  const state = loadState();
+  if (state.currentProfile === local.profile) {
+    ui.info(`Already using profile "${pc.bold(local.profile)}" (from ${pc.dim(local.path)})`);
+    return;
+  }
+
+  cmdUse(local.profile);
+  console.log(pc.dim(`  ${SYMBOLS.arrow} Detected from: ${local.path}`));
+  console.log();
+}
+
 function cmdShow(name: string): void {
   if (!profileExists(name)) {
     ui.error(`Profile "${name}" does not exist.`);
@@ -485,9 +565,20 @@ program
   .description("Show profile details")
   .action(cmdShow);
 
+program
+  .command("init <profile>")
+  .description(`Create ${OCLRC_FILE} in current directory`)
+  .action(cmdInit);
+
+program
+  .command("apply")
+  .description(`Apply profile from ${OCLRC_FILE} (searches parent directories)`)
+  .action(cmdApply);
+
 program.action(() => {
   const state = loadState();
   const profiles = listProfiles();
+  const local = findLocalProfile();
   
   console.log();
   console.log(pc.cyan(pc.bold("  opencode-launcher")) + pc.dim(" (ocl)"));
@@ -499,6 +590,17 @@ program.action(() => {
   } else {
     console.log(`  ${pc.dim(SYMBOLS.bullet)} No active profile`);
   }
+  
+  if (local) {
+    const needsApply = state.currentProfile !== local.profile;
+    if (needsApply) {
+      console.log(`  ${pc.yellow(SYMBOLS.arrow)} Local: ${pc.yellow(pc.bold(local.profile))} ${pc.dim(`(${local.path})`)}`);
+      console.log(pc.dim(`    Run ${pc.cyan("ocl apply")} to switch`));
+    } else {
+      console.log(`  ${pc.dim(SYMBOLS.bullet)} Local: ${local.profile} ${pc.dim(`(${local.path})`)}`);
+    }
+  }
+  
   console.log(`  ${pc.dim(SYMBOLS.bullet)} ${profiles.length} profile(s) available`);
   console.log();
   console.log(pc.dim("  Run ") + pc.cyan("ocl --help") + pc.dim(" for available commands"));

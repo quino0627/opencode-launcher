@@ -45,6 +45,44 @@ ocl delete work-backup
 ocl run personal .
 ```
 
+## Project-local Profiles (.oclrc)
+
+You can set a default profile for a specific directory by creating a `.oclrc` file:
+
+```bash
+# In your project directory
+ocl init work
+
+# This creates .oclrc containing "work"
+# Now apply it:
+ocl apply
+```
+
+The `.oclrc` file is searched upward from the current directory (like `.gitignore`), so you can set it at your project root.
+
+```bash
+# Example workflow
+cd ~/projects/company-app
+ocl init work           # Creates .oclrc with "work"
+ocl apply               # Switches to work profile
+
+cd ~/projects/personal-app  
+ocl init personal       # Creates .oclrc with "personal"
+ocl apply               # Switches to personal profile
+```
+
+When you run `ocl` with no arguments, it will show if a local `.oclrc` exists and whether you need to apply it:
+
+```
+  opencode-launcher (ocl)
+  Elegant profile manager for OpenCode
+
+  ★ Current: work
+  → Local: personal (/Users/you/projects/personal-app/.oclrc)
+    Run ocl apply to switch
+  • 3 profile(s) available
+```
+
 ## Commands
 
 | Command | Alias | Description |
@@ -58,6 +96,8 @@ ocl run personal .
 | `ocl run <name> [args]` | - | Run opencode with profile |
 | `ocl copy <src> <dest>` | `cp` | Copy a profile |
 | `ocl show <name>` | `info` | Show profile details |
+| `ocl init <profile>` | - | Create `.oclrc` in current directory |
+| `ocl apply` | - | Apply profile from `.oclrc` |
 
 ## How It Works
 
@@ -65,6 +105,7 @@ ocl run personal .
 - When you `use` a profile, it copies the config to `~/.config/opencode/opencode.json`
 - A backup is automatically created before your first profile switch
 - The `run` command temporarily switches profiles for a single session
+- `.oclrc` files let you set project-specific default profiles
 
 ## License
 
