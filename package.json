@@ -1,6 +1,6 @@
 {
   "name": "opencode-launcher",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Elegant profile manager for OpenCode - switch between work, personal, and project configurations effortlessly",
   "type": "module",
   "main": "dist/index.js",
